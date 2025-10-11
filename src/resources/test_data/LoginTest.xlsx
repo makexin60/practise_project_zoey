@@ -1,0 +1,3 @@
+Username	Password	ExpectedResult
+user1@test.com	pass123	Success
+user2@test.com	wrongpass	Failure
