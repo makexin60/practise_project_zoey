@@ -8,6 +8,86 @@ from selenium.webdriver.support import expected_conditions as EC
 from selenium.webdriver.support.wait import WebDriverWait
 import GetCommon
 import time
+from playwright.sync_api import Page
+
+def get_structure_data(page: Page, url: str):
+    result = []
+    try:
+        page.goto(url, timeout=15000)
+        parent_divs = page.locator(".Mf2Txd")
+        count = parent_divs.count()
+        if count == 0:
+            logger.error(f"class='Mf2Txd' not found: {url}")
+            return result
+        for i in range(count):
+            parent = parent_divs.nth(i)
+            h2_element = parent.locator("h2").inner_text() if parent.locator("h2").count() else None
+            ivTO9c_text = parent.locator(".ivTO9c").inner_text() if parent.locator(".ivTO9c").count() else None
+            # Construct title
+            title = h2_element or ""
+            if ivTO9c_text:
+                title += f" ( {ivTO9c_text} )"
+            # -------- 1. Handle Security practices ----------
+            if h2_element == "Security practices":
+                h3_texts = [parent.locator("h3").nth(j).inner_text()
+                            for j in range(parent.locator("h3").count())]
+                foz_texts = [parent.locator(".fozKzd").nth(j).inner_text()
+                             for j in range(parent.locator(".fozKzd").count())]
+                security_practices = []
+                if len(h3_texts) == len(foz_texts):
+                    security_practices = [
+                        {k: v} for k, v in zip(h3_texts, foz_texts)
+                    ]
+                result.append({"Security practices": security_practices})
+                continue
+            # -------- 2. Normal data section ----------
+            section_result = []
+            oj_divs = parent.locator("[jscontroller='ojPjfd']")
+            oj_count = oj_divs.count()
+
+            for k in range(oj_count):
+                block = oj_divs.nth(k)
+
+                # h3 title
+                h3_title = block.locator("h3").inner_text() if block.locator("h3").count() else "Unknown"
+
+                # content under fozKzd
+                h3_content = block.locator(".fozKzd").inner_text() if block.locator(".fozKzd").count() else "Unknown"
+
+                # top-level ZirXzb
+                zircon = block.locator(".ZirXzb").inner_text() if block.locator(".ZirXzb").count() else None
+
+                # ------- big GcNQi blocks --------
+                big_details = []
+                GcNQi_blocks = block.locator(".GcNQi")
+
+                for x in range(GcNQi_blocks.count()):
+                    gc = GcNQi_blocks.nth(x)
+
+                    h4_list = [gc.locator("h4").nth(t).inner_text()
+                                for t in range(gc.locator("h4").count())]
+
+                    fn_list = [gc.locator(".FnWDne").nth(t).inner_text()
+                                for t in range(gc.locator(".FnWDne").count())]
+
+                    if len(h4_list) == len(fn_list):
+                        big_details.append(dict(zip(h4_list, fn_list)))
+
+                section_result.append({
+                    h3_title: h3_content,
+                    zircon: big_details
+                })
+
+            result.append({title: section_result})
+
+        logger.warning(url)
+        print(f"result: {result}")
+        return result
+
+    except Exception as e:
+        logger.error(f"Error scraping {url}: {e}")
+        print(f"Error scraping {url}: {e}")
+        return result
 
 def get_structure_data(url):
     result = []
